@@ -1,0 +1,180 @@
+import { Course } from '@/types';
+
+export const mockCourses: Course[] = [
+  {
+    id: 'c1',
+    title: 'Shooting Fundamentals',
+    description: 'Master the basics of shooting form and technique',
+    thumbnail: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1000',
+    category: 'shooting',
+    difficulty: 'beginner',
+    content: [
+      {
+        id: 'c1-1',
+        title: 'Proper Shooting Form',
+        type: 'video',
+        url: 'https://example.com/shooting-form',
+        duration: 15,
+      },
+      {
+        id: 'c1-2',
+        title: 'BEEF Method Explained',
+        type: 'text',
+        content: 'The BEEF method stands for Balance, Eyes, Elbow, Follow-through. This fundamental approach helps players develop consistent shooting mechanics...',
+      },
+      {
+        id: 'c1-3',
+        title: 'Shooting Drills',
+        type: 'pdf',
+        url: 'https://example.com/shooting-drills.pdf',
+      },
+    ],
+  },
+  {
+    id: 'c2',
+    title: 'Advanced Dribbling',
+    description: 'Take your ball handling to the next level',
+    thumbnail: 'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?q=80&w=1000',
+    category: 'dribbling',
+    difficulty: 'intermediate',
+    content: [
+      {
+        id: 'c2-1',
+        title: 'Crossover Mastery',
+        type: 'video',
+        url: 'https://example.com/crossover',
+        duration: 12,
+      },
+      {
+        id: 'c2-2',
+        title: 'Behind-the-Back Dribble',
+        type: 'video',
+        url: 'https://example.com/behind-back',
+        duration: 10,
+      },
+      {
+        id: 'c2-3',
+        title: 'Dribbling Workout Plan',
+        type: 'pdf',
+        url: 'https://example.com/dribble-workout.pdf',
+      },
+    ],
+  },
+  {
+    id: 'c3',
+    title: 'Defensive Strategies',
+    description: 'Learn how to lock down your opponent',
+    thumbnail: 'https://images.unsplash.com/photo-1504450758481-7338eba7524a?q=80&w=1000',
+    category: 'defense',
+    difficulty: 'intermediate',
+    content: [
+      {
+        id: 'c3-1',
+        title: 'Defensive Stance',
+        type: 'video',
+        url: 'https://example.com/defense-stance',
+        duration: 8,
+      },
+      {
+        id: 'c3-2',
+        title: 'Perimeter Defense',
+        type: 'video',
+        url: 'https://example.com/perimeter',
+        duration: 14,
+      },
+      {
+        id: 'c3-3',
+        title: 'Team Defense Concepts',
+        type: 'text',
+        content: 'Team defense is about communication, positioning, and understanding rotations. This guide covers the key principles...',
+      },
+    ],
+  },
+  {
+    id: 'c4',
+    title: 'Basketball Nutrition',
+    description: 'Fuel your body for peak performance',
+    thumbnail: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=1000',
+    category: 'nutrition',
+    difficulty: 'beginner',
+    content: [
+      {
+        id: 'c4-1',
+        title: 'Pre-Game Meals',
+        type: 'text',
+        content: 'What you eat before games can significantly impact your performance. This guide covers optimal pre-game nutrition strategies...',
+      },
+      {
+        id: 'c4-2',
+        title: 'Recovery Nutrition',
+        type: 'video',
+        url: 'https://example.com/recovery-nutrition',
+        duration: 18,
+      },
+      {
+        id: 'c4-3',
+        title: 'Meal Plans for Athletes',
+        type: 'pdf',
+        url: 'https://example.com/meal-plans.pdf',
+      },
+    ],
+  },
+  {
+    id: 'c5',
+    title: 'Pro-Level Finishing',
+    description: 'Master advanced layups and finishes around the rim',
+    thumbnail: 'https://images.unsplash.com/photo-1519861531473-9200262188bf?q=80&w=1000',
+    category: 'finishing',
+    difficulty: 'advanced',
+    content: [
+      {
+        id: 'c5-1',
+        title: 'Euro Step Technique',
+        type: 'video',
+        url: 'https://example.com/euro-step',
+        duration: 12,
+      },
+      {
+        id: 'c5-2',
+        title: 'Reverse Layups',
+        type: 'video',
+        url: 'https://example.com/reverse-layups',
+        duration: 10,
+      },
+      {
+        id: 'c5-3',
+        title: 'Contact Finishing',
+        type: 'video',
+        url: 'https://example.com/contact-finishing',
+        duration: 15,
+      },
+    ],
+  },
+  {
+    id: 'c6',
+    title: 'Hoopers Haven E-Book',
+    description: 'An intro course to improve your basketball skills with discipline, confidence, and mindset strategies.',
+    thumbnail: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=1000',
+    category: 'mindset',
+    difficulty: 'beginner',
+    content: [
+      {
+        id: 'c6-1',
+        title: 'Hoopers Haven E-Book',
+        type: 'pdf',
+        url: 'https://drive.google.com/file/d/1C1mmt0c9CeW3QQIbBcIYFUGfQGFYJHZ7/view?usp=drive_link',
+      },
+    ],
+    createdAt: new Date(),
+  },
+];
+
+export const courseCategories = [
+  { id: 'shooting', name: 'Shooting' },
+  { id: 'dribbling', name: 'Dribbling' },
+  { id: 'defense', name: 'Defense' },
+  { id: 'nutrition', name: 'Nutrition' },
+  { id: 'finishing', name: 'Finishing' },
+  { id: 'conditioning', name: 'Conditioning' },
+  { id: 'mindset', name: 'Mindset & Confidence' },
+];
