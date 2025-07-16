@@ -11,6 +11,9 @@ import { useCoursesStore } from "@/store/courses-store";
 import { useRewardsStore } from "@/store/rewards-store";
 import { useNotificationsStore } from "@/store/notifications-store";
 import { useUserStore } from "@/store/user-store";
+import { useMealsStore } from "@/store/meals-store";
+import { useSleepStore } from "@/store/sleep-store";
+import { useWaterStore } from "@/store/water-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -49,6 +52,11 @@ export default function RootLayout() {
   const initializeBadges = useRewardsStore(state => state.initializeBadges);
   const { requestPermissions, scheduleAllNotifications, setPermission } = useNotificationsStore();
   const { setFirebaseUser, firebaseUser } = useUserStore();
+  
+  const subscribeToMeals = useMealsStore(state => state.subscribeToMeals);
+  const subscribeToSleepEntries = useSleepStore(state => state.subscribeToSleepEntries);
+  const subscribeToWaterEntries = useWaterStore(state => state.subscribeToWaterEntries);
+  const checkAndResetDaily = useWaterStore(state => state.checkAndResetDaily);
 
   useEffect(() => {
     if (error) {
@@ -57,15 +65,39 @@ export default function RootLayout() {
     }
   }, [error]);
   
-  // Initialize Firebase auth listener
+  // Initialize Firebase auth listener and data subscriptions
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let dataUnsubscribers: (() => void)[] = [];
+    
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
+      
+      dataUnsubscribers.forEach(unsub => unsub());
+      dataUnsubscribers = [];
+      
+      if (user) {
+        // Initialize data subscriptions for authenticated user
+        try {
+          const mealsUnsub = subscribeToMeals(user.uid);
+          const sleepUnsub = subscribeToSleepEntries(user.uid);
+          const waterUnsub = subscribeToWaterEntries(user.uid);
+          
+          dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub];
+          
+          await checkAndResetDaily(user.uid);
+        } catch (error) {
+          console.error('Error initializing data subscriptions:', error);
+        }
+      }
+      
       setAuthInitialized(true);
     });
 
-    return unsubscribe;
-  }, [setFirebaseUser]);
+    return () => {
+      unsubscribe();
+      dataUnsubscribers.forEach(unsub => unsub());
+    };
+  }, [setFirebaseUser, subscribeToMeals, subscribeToSleepEntries, subscribeToWaterEntries, checkAndResetDaily]);
   
   // Check if user has completed onboarding
   useEffect(() => {
