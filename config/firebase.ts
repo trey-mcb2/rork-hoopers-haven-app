@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 // Your web app's Firebase configuration
@@ -18,11 +18,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication with platform-specific configuration
+console.log('Platform.OS detected as:', Platform.OS);
 export const auth = Platform.OS === 'web' 
   ? getAuth(app)
   : initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+      persistence: getReactNativePersistence(AsyncStorage)
     });
+console.log('Firebase Auth initialized for platform:', Platform.OS);
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
