@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, Image, Linking, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Image, Linking, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
