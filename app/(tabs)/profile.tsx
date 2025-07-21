@@ -63,13 +63,9 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    console.log('handleLogout called, Platform.OS:', Platform.OS);
     if (Platform.OS === 'web') {
-      console.log('Web platform detected, showing confirmation dialog');
       const confirmed = window.confirm('Are you sure you want to sign out?');
-      console.log('Confirmation result:', confirmed);
       if (confirmed) {
-        console.log('User confirmed logout, calling performLogout');
         performLogout();
       }
     } else {
@@ -92,13 +88,9 @@ export default function ProfileScreen() {
   };
 
   const performLogout = async () => {
-    console.log('performLogout called');
     try {
-      console.log('Calling Firebase signOut');
       await signOut(auth);
-      console.log('Firebase signOut successful, calling user store logout');
       logout();
-      console.log('User store logout called');
     } catch (error) {
       console.error('Logout error:', error);
       if (Platform.OS === 'web') {
