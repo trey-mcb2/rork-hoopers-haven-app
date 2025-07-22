@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { useShotsStore } from '@/store/shots-store';
+import { useUserStore } from '@/store/user-store';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { Target, Minus, Plus } from 'lucide-react-native';
@@ -29,6 +30,7 @@ const locationOptions = [
 export default function AddShotSessionScreen() {
   const router = useRouter();
   const { addSession } = useShotsStore();
+  const { firebaseUser } = useUserStore();
   
   const [shotsMade, setShotsMade] = useState('0');
   const [shotsAttempted, setShotsAttempted] = useState('0');
@@ -59,7 +61,7 @@ export default function AddShotSessionScreen() {
     }
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (parseInt(shotsAttempted) <= 0) {
       return;
     }
@@ -67,21 +69,25 @@ export default function AddShotSessionScreen() {
     setIsSubmitting(true);
     
     const newSession = {
-      userId: '1', // Use actual user ID in a real app
-      date: new Date(),
+      userId: firebaseUser?.uid || '',
+      date: new Date().toISOString(),
       shotsMade: parseInt(shotsMade),
       shotsAttempted: parseInt(shotsAttempted),
       shotType: shotType || undefined,
       location: location || undefined,
     };
     
-    addSession(newSession);
-    
-    // Simulate a brief loading state
-    setTimeout(() => {
+    try {
+      await addSession(newSession);
+      
+      setTimeout(() => {
+        setIsSubmitting(false);
+        router.back();
+      }, 500);
+    } catch (error) {
       setIsSubmitting(false);
-      router.back();
-    }, 500);
+      Alert.alert('Error', 'Failed to save shot session. Please try again.');
+    }
   };
   
   // Calculate shooting percentage

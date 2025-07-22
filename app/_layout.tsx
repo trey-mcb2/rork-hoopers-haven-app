@@ -14,6 +14,10 @@ import { useUserStore } from "@/store/user-store";
 import { useMealsStore } from "@/store/meals-store";
 import { useSleepStore } from "@/store/sleep-store";
 import { useWaterStore } from "@/store/water-store";
+import { useWorkoutsStore } from "@/store/workouts-store";
+import { useShotsStore } from "@/store/shots-store";
+import { useWorkoutRatingStore } from "@/store/workout-rating-store";
+import { useDayRatingStore } from "@/store/day-rating-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -56,6 +60,10 @@ export default function RootLayout() {
   const subscribeToMeals = useMealsStore(state => state.subscribeToMeals);
   const subscribeToSleepEntries = useSleepStore(state => state.subscribeToSleepEntries);
   const subscribeToWaterEntries = useWaterStore(state => state.subscribeToWaterEntries);
+  const subscribeToWorkouts = useWorkoutsStore(state => state.subscribeToWorkouts);
+  const subscribeToSessions = useShotsStore(state => state.subscribeToSessions);
+  const subscribeToWorkoutRatings = useWorkoutRatingStore(state => state.subscribeToWorkoutRatings);
+  const subscribeToDayRatings = useDayRatingStore(state => state.subscribeToDayRatings);
   const checkAndResetDaily = useWaterStore(state => state.checkAndResetDaily);
 
   useEffect(() => {
@@ -81,8 +89,12 @@ export default function RootLayout() {
           const mealsUnsub = subscribeToMeals(user.uid);
           const sleepUnsub = subscribeToSleepEntries(user.uid);
           const waterUnsub = subscribeToWaterEntries(user.uid);
+          const workoutsUnsub = subscribeToWorkouts(user.uid);
+          const sessionsUnsub = subscribeToSessions(user.uid);
+          const workoutRatingsUnsub = subscribeToWorkoutRatings(user.uid);
+          const dayRatingsUnsub = subscribeToDayRatings(user.uid);
           
-          dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub];
+          dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub, workoutsUnsub, sessionsUnsub, workoutRatingsUnsub, dayRatingsUnsub];
           
           await checkAndResetDaily(user.uid);
         } catch (error) {
@@ -97,7 +109,7 @@ export default function RootLayout() {
       unsubscribe();
       dataUnsubscribers.forEach(unsub => unsub());
     };
-  }, [setFirebaseUser, subscribeToMeals, subscribeToSleepEntries, subscribeToWaterEntries, checkAndResetDaily]);
+  }, [setFirebaseUser, subscribeToMeals, subscribeToSleepEntries, subscribeToWaterEntries, subscribeToWorkouts, subscribeToSessions, subscribeToWorkoutRatings, subscribeToDayRatings, checkAndResetDaily]);
   
   // Check if user has completed onboarding
   useEffect(() => {
@@ -132,7 +144,6 @@ export default function RootLayout() {
           canAskAgain: status !== 'denied'
         });
 
-        // If permissions are granted, schedule notifications
         if (granted) {
           await scheduleAllNotifications();
         }
