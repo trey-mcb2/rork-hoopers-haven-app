@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Colors from '@/constants/colors';
 import { useMealsStore } from '@/store/meals-store';
+import { useUserStore } from '@/store/user-store';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import { Utensils } from 'lucide-react-native';
@@ -16,7 +17,8 @@ export default function AddMealScreen() {
   const { id } = params;
   const isEditing = !!id;
   
-  const { addMeal, updateMeal, meals = [] } = useMealsStore();
+  const { addMeal, updateMeal, meals = [], isLoading, error } = useMealsStore();
+  const { firebaseUser } = useUserStore();
   
   const [description, setDescription] = useState('');
   const [mealType, setMealType] = useState<MealType>('breakfast');
@@ -42,15 +44,15 @@ export default function AddMealScreen() {
     }
   }, [id, meals]);
   
-  const handleSubmit = () => {
-    if (!description.trim()) {
+  const handleSubmit = async () => {
+    if (!description.trim() || !firebaseUser) {
       return;
     }
     
     setIsSubmitting(true);
     
     const mealData = {
-      userId: '1', // Use actual user ID in a real app
+      userId: firebaseUser.uid,
       date,
       mealType,
       description,
@@ -58,17 +60,19 @@ export default function AddMealScreen() {
       protein: protein ? parseInt(protein) : undefined,
     };
     
-    if (isEditing && id) {
-      updateMeal(id as string, mealData);
-    } else {
-      addMeal(mealData);
-    }
-    
-    // Simulate a brief loading state
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      if (isEditing && id) {
+        await updateMeal(id as string, mealData);
+      } else {
+        await addMeal(mealData);
+      }
       router.back();
-    }, 500);
+    } catch (error) {
+      console.error('Error saving meal:', error);
+      Alert.alert('Error', 'Failed to save meal. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -158,8 +162,8 @@ export default function AddMealScreen() {
           onPress={handleSubmit}
           variant="primary"
           style={styles.footerButton}
-          loading={isSubmitting}
-          disabled={!description.trim()}
+          loading={isSubmitting || isLoading}
+          disabled={!description.trim() || !firebaseUser}
         />
       </View>
     </SafeAreaView>

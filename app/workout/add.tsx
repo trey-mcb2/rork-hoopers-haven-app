@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Colors from '@/constants/colors';
 import { useWorkoutsStore } from '@/store/workouts-store';
 import { useWorkoutRatingStore } from '@/store/workout-rating-store';
+import { useUserStore } from '@/store/user-store';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import StarRating from '@/components/StarRating';
@@ -35,6 +36,7 @@ export default function AddWorkoutScreen() {
   
   const { addWorkout, updateWorkout, workouts = [] } = useWorkoutsStore();
   const { addRating, getRatingByWorkoutId, updateRating } = useWorkoutRatingStore();
+  const { firebaseUser } = useUserStore();
   
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('');
@@ -88,7 +90,7 @@ export default function AddWorkoutScreen() {
     setFocusAreas(focusAreas.filter(a => a !== area));
   };
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!description.trim() || !duration) {
       return;
     }
@@ -96,58 +98,61 @@ export default function AddWorkoutScreen() {
     setIsSubmitting(true);
     
     const workoutData = {
-      userId: '1', // Use actual user ID in a real app
-      date: isEditing ? date.toISOString() : new Date().toISOString(), // Convert Date to string
+      userId: firebaseUser?.uid || '',
+      date: isEditing ? date.toISOString() : new Date().toISOString(),
       description,
       duration: parseInt(duration),
       intensity,
       focusArea: focusAreas.length > 0 ? focusAreas : undefined,
     };
     
-    if (isEditing && id) {
-      updateWorkout(id as string, workoutData);
-      
-      // If editing, show rating screen if user wants to update the rating
-      Alert.alert(
-        "Update Rating",
-        "Would you like to update your workout rating?",
-        [
-          {
-            text: "No",
-            onPress: () => {
-              setIsSubmitting(false);
-              router.back();
+    try {
+      if (isEditing && id) {
+        await updateWorkout(id as string, workoutData);
+        
+        Alert.alert(
+          "Update Rating",
+          "Would you like to update your workout rating?",
+          [
+            {
+              text: "No",
+              onPress: () => {
+                setIsSubmitting(false);
+                router.back();
+              },
+              style: "cancel"
             },
-            style: "cancel"
-          },
-          {
-            text: "Yes",
-            onPress: () => {
-              setIsSubmitting(false);
-              setShowRating(true);
+            {
+              text: "Yes",
+              onPress: () => {
+                setIsSubmitting(false);
+                setShowRating(true);
+              }
             }
-          }
-        ]
-      );
-    } else {
-      // Add the workout and get the new ID
-      const newWorkoutId = Date.now().toString();
-      addWorkout({...workoutData, id: newWorkoutId});
-      setWorkoutId(newWorkoutId);
-      
-      // Show rating prompt for new workouts only
-      setShowRating(true);
+          ]
+        );
+      } else {
+        const newWorkoutId = Date.now().toString();
+        await addWorkout({...workoutData, id: newWorkoutId});
+        setWorkoutId(newWorkoutId);
+        
+        setShowRating(true);
+        setIsSubmitting(false);
+      }
+    } catch (error) {
       setIsSubmitting(false);
+      Alert.alert('Error', 'Failed to save workout. Please try again.');
     }
   };
   
-  const handleSubmitRating = () => {
+  const handleSubmitRating = async () => {
     setIsSubmitting(true);
     
     const currentDate = new Date();
     const formattedDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
     
     const workoutRating = {
+      userId: firebaseUser?.uid || '',
       workoutId: isEditing ? id as string : workoutId,
       date: formattedDate,
       focus: focusRating,
@@ -156,22 +161,24 @@ export default function AddWorkoutScreen() {
       notes: ratingNotes.trim() || undefined,
     };
     
-    if (isEditing && getRatingByWorkoutId && getRatingByWorkoutId(id as string)) {
-      // Update existing rating
-      const existingRating = getRatingByWorkoutId(id as string);
-      if (existingRating) {
-        updateRating(existingRating.id, workoutRating);
+    try {
+      if (isEditing && getRatingByWorkoutId && getRatingByWorkoutId(id as string)) {
+        const existingRating = getRatingByWorkoutId(id as string);
+        if (existingRating) {
+          await updateRating(existingRating.id, workoutRating);
+        }
+      } else {
+        await addRating(workoutRating);
       }
-    } else {
-      // Add new rating
-      addRating(workoutRating);
-    }
-    
-    // Simulate a brief loading state
-    setTimeout(() => {
+      
+      setTimeout(() => {
+        setIsSubmitting(false);
+        router.back();
+      }, 500);
+    } catch (error) {
       setIsSubmitting(false);
-      router.back();
-    }, 500);
+      Alert.alert('Error', 'Failed to save rating. Please try again.');
+    }
   };
   
   const handleSkipRating = () => {

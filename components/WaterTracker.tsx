@@ -4,6 +4,7 @@ import { Droplet, Plus, Minus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Card from '@/components/Card';
 import { useWaterStore } from '@/store/water-store';
+import { useUserStore } from '@/store/user-store';
 
 interface WaterTrackerProps {
   compact?: boolean;
@@ -11,23 +12,24 @@ interface WaterTrackerProps {
 
 export const WaterTracker: React.FC<WaterTrackerProps> = ({ compact = false }) => {
   const { todayEntry, addWater, checkAndResetDaily, isLoading } = useWaterStore();
+  const { firebaseUser } = useUserStore();
   
   // Check if we need to reset the daily counter
   useEffect(() => {
-    if (checkAndResetDaily) {
-      checkAndResetDaily();
+    if (checkAndResetDaily && firebaseUser) {
+      checkAndResetDaily(firebaseUser.uid);
     }
-  }, [checkAndResetDaily]);
+  }, [checkAndResetDaily, firebaseUser]);
   
-  const handleAddGlass = () => {
-    if (addWater) {
-      addWater(1);
+  const handleAddGlass = async () => {
+    if (addWater && firebaseUser) {
+      await addWater(1, firebaseUser.uid);
     }
   };
   
-  const handleRemoveGlass = () => {
-    if (todayEntry && todayEntry.glasses > 0 && addWater) {
-      addWater(-1);
+  const handleRemoveGlass = async () => {
+    if (todayEntry && todayEntry.glasses > 0 && addWater && firebaseUser) {
+      await addWater(-1, firebaseUser.uid);
     }
   };
   

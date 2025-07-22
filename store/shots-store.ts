@@ -1,69 +1,96 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 import { ShotSession } from '@/types';
-import { useUserStore } from './user-store';
 
 interface ShotsState {
   sessions: ShotSession[];
   isLoading: boolean;
   error: string | null;
-  addSession: (session: Omit<ShotSession, 'id'>) => void;
-  updateSession: (id: string, session: Partial<ShotSession>) => void;
-  deleteSession: (id: string) => void;
+  addSession: (session: Omit<ShotSession, 'id'>) => Promise<void>;
+  updateSession: (id: string, session: Partial<ShotSession>) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
   getSessionsByDate: (date: Date) => ShotSession[];
   getSessionsByDateRange: (startDate: Date, endDate: Date) => ShotSession[];
   getWeeklyStats: () => { made: number; attempted: number; date: string }[];
   getMonthlyStats: () => { made: number; attempted: number; month: string }[];
   getYearlyStats: () => { made: number; attempted: number; year: number }[];
+  loadSessions: (userId: string) => Promise<void>;
+  subscribeToSessions: (userId: string) => () => void;
 }
 
-export const useShotsStore = create<ShotsState>()(
-  persist(
-    (set, get) => ({
-      sessions: [],
-      isLoading: false,
-      error: null,
-      addSession: (sessionData) => {
-        const session: ShotSession = {
-          ...sessionData,
-          id: Date.now().toString(),
-        };
-        set((state) => ({ sessions: [...state.sessions, session] }));
-        useUserStore.getState().incrementStat('totalShotsMade', session.shotsMade);
-        useUserStore.getState().incrementStat('totalShotsAttempted', session.shotsAttempted);
-      },
-      updateSession: (id, updatedSession) => {
-        const oldSession = get().sessions.find(s => s.id === id);
-        const newSession = { ...oldSession, ...updatedSession };
-        
-        if (oldSession && 'shotsMade' in updatedSession) {
-          const difference = newSession.shotsMade - oldSession.shotsMade;
-          useUserStore.getState().incrementStat('totalShotsMade', difference);
-        }
-        
-        if (oldSession && 'shotsAttempted' in updatedSession) {
-          const difference = newSession.shotsAttempted - oldSession.shotsAttempted;
-          useUserStore.getState().incrementStat('totalShotsAttempted', difference);
-        }
-        
-        set((state) => ({
-          sessions: state.sessions.map((session) =>
-            session.id === id ? { ...session, ...updatedSession } : session
-          ),
-        }));
-      },
-      deleteSession: (id) => {
-        const session = get().sessions.find(s => s.id === id);
-        if (session) {
-          useUserStore.getState().incrementStat('totalShotsMade', -session.shotsMade);
-          useUserStore.getState().incrementStat('totalShotsAttempted', -session.shotsAttempted);
-        }
-        
-        set((state) => ({
-          sessions: state.sessions.filter((session) => session.id !== id),
-        }));
-      },
+export const useShotsStore = create<ShotsState>()((set, get) => ({
+  sessions: [],
+  isLoading: false,
+  error: null,
+  
+  addSession: async (sessionData) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const sessionsRef = collection(db, 'users', sessionData.userId, 'shots');
+      const docRef = await addDoc(sessionsRef, sessionData);
+      
+      const session: ShotSession = {
+        ...sessionData,
+        id: docRef.id,
+      };
+      
+      set((state) => ({
+        sessions: [...state.sessions, session],
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error adding shot session:', error);
+      set({ error: 'Failed to add shot session', isLoading: false });
+    }
+  },
+  
+  updateSession: async (id, updatedSession) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const currentSession = get().sessions.find(session => session.id === id);
+      if (!currentSession) {
+        throw new Error('Shot session not found');
+      }
+      
+      const sessionRef = doc(db, 'users', currentSession.userId, 'shots', id);
+      await updateDoc(sessionRef, updatedSession);
+      
+      set((state) => ({
+        sessions: state.sessions.map((session) =>
+          session.id === id ? { ...session, ...updatedSession } : session
+        ),
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error updating shot session:', error);
+      set({ error: 'Failed to update shot session', isLoading: false });
+    }
+  },
+  
+  deleteSession: async (id) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const currentSession = get().sessions.find(session => session.id === id);
+      if (!currentSession) {
+        throw new Error('Shot session not found');
+      }
+      
+      const sessionRef = doc(db, 'users', currentSession.userId, 'shots', id);
+      await deleteDoc(sessionRef);
+      
+      set((state) => ({
+        sessions: state.sessions.filter((session) => session.id !== id),
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error deleting shot session:', error);
+      set({ error: 'Failed to delete shot session', isLoading: false });
+    }
+  },
       getSessionsByDate: (date) => {
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
@@ -174,10 +201,41 @@ export const useShotsStore = create<ShotsState>()(
         
         return yearlyStats.sort((a, b) => a.year - b.year);
       },
-    }),
-    {
-      name: 'shots-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
-);
+      
+      loadSessions: async (userId) => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          const sessionsRef = collection(db, 'users', userId, 'shots');
+          const q = query(sessionsRef, orderBy('date', 'desc'));
+          const querySnapshot = await getDocs(q);
+          
+          const sessions: ShotSession[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as ShotSession[];
+          
+          set({ sessions, isLoading: false });
+        } catch (error) {
+          console.error('Error loading shot sessions:', error);
+          set({ error: 'Failed to load shot sessions', isLoading: false });
+        }
+      },
+      
+      subscribeToSessions: (userId) => {
+        const sessionsRef = collection(db, 'users', userId, 'shots');
+        const q = query(sessionsRef, orderBy('date', 'desc'));
+        
+        return onSnapshot(q, (querySnapshot) => {
+          const sessions: ShotSession[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as ShotSession[];
+          
+          set({ sessions, isLoading: false });
+        }, (error) => {
+          console.error('Error in shot sessions subscription:', error);
+          set({ error: 'Failed to sync shot sessions', isLoading: false });
+        });
+      },
+    }));

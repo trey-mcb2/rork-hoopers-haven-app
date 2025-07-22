@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { useSleepStore } from '@/store/sleep-store';
+import { useUserStore } from '@/store/user-store';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import StarRating from '@/components/StarRating';
@@ -11,7 +12,8 @@ import { Moon, Plus, Minus } from 'lucide-react-native';
 
 export default function AddSleepScreen() {
   const router = useRouter();
-  const { addSleepEntry } = useSleepStore();
+  const { addSleepEntry, isLoading, error } = useSleepStore();
+  const { firebaseUser } = useUserStore();
   
   const [hours, setHours] = useState('7');
   const [quality, setQuality] = useState(3);
@@ -32,27 +34,33 @@ export default function AddSleepScreen() {
     }
   };
   
-  const handleSubmit = () => {
-    if (parseFloat(hours) <= 0) {
+  const handleSubmit = async () => {
+    if (parseFloat(hours) <= 0 || !firebaseUser) {
       return;
     }
     
     setIsSubmitting(true);
     
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
     const newSleepEntry = {
-      date: new Date(),
+      userId: firebaseUser.uid,
+      date: dateStr,
       hours: parseFloat(hours),
       quality,
       notes: notes.trim() || undefined,
     };
     
-    addSleepEntry(newSleepEntry);
-    
-    // Simulate a brief loading state
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await addSleepEntry(newSleepEntry);
       router.back();
-    }, 500);
+    } catch (error) {
+      console.error('Error saving sleep entry:', error);
+      Alert.alert('Error', 'Failed to save sleep entry. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -134,8 +142,8 @@ export default function AddSleepScreen() {
           onPress={handleSubmit}
           variant="primary"
           style={styles.footerButton}
-          loading={isSubmitting}
-          disabled={parseFloat(hours) <= 0}
+          loading={isSubmitting || isLoading}
+          disabled={parseFloat(hours) <= 0 || !firebaseUser}
         />
       </View>
     </SafeAreaView>

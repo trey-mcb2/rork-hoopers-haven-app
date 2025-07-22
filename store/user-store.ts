@@ -140,12 +140,15 @@ export const useUserStore = create<UserState>()(
           };
         }),
         
-      logout: () => set({ 
-        user: null, 
-        firebaseUser: null,
-        personalGoal: null,
-        // Keep stats and measurements as they might be useful for next login
-      }),
+      logout: () => {
+        set({ 
+          user: null, 
+          firebaseUser: null,
+          personalGoal: null,
+          // Keep stats and measurements as they might be useful for next login
+        });
+        AsyncStorage.removeItem('user-storage');
+      },
     }),
     {
       name: 'user-storage',

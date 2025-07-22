@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Colors from '@/constants/colors';
 import { useDayRatingStore } from '@/store/day-rating-store';
+import { useUserStore } from '@/store/user-store';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
 import StarRating from '@/components/StarRating';
@@ -12,6 +13,7 @@ import { Calendar } from 'lucide-react-native';
 export default function RateDayScreen() {
   const router = useRouter();
   const { getRatingByDate, addRating } = useDayRatingStore();
+  const { firebaseUser } = useUserStore();
   
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
@@ -26,20 +28,31 @@ export default function RateDayScreen() {
     }
   }, [getRatingByDate]);
   
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) {
       return;
     }
     
     setIsSubmitting(true);
     
-    addRating(rating, notes.trim() || undefined);
+    const ratingData = {
+      userId: firebaseUser?.uid || '',
+      rating,
+      date: new Date().toISOString().split('T')[0],
+      notes: notes.trim() || undefined,
+    };
     
-    // Simulate a brief loading state
-    setTimeout(() => {
+    try {
+      await addRating(ratingData);
+      
+      setTimeout(() => {
+        setIsSubmitting(false);
+        router.back();
+      }, 500);
+    } catch (error) {
       setIsSubmitting(false);
-      router.back();
-    }, 500);
+      Alert.alert('Error', 'Failed to save rating. Please try again.');
+    }
   };
   
   return (
