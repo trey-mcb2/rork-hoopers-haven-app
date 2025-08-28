@@ -89,8 +89,8 @@ export default function ProfileScreen() {
 
   const performLogout = async () => {
     try {
-      await signOut(auth);
       logout();
+      await signOut(auth);
     } catch (error) {
       console.error('Logout error:', error);
       if (Platform.OS === 'web') {

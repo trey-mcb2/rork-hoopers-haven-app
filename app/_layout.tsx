@@ -1,6 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -56,6 +56,8 @@ export default function RootLayout() {
   const initializeBadges = useRewardsStore(state => state.initializeBadges);
   const { requestPermissions, scheduleAllNotifications, setPermission } = useNotificationsStore();
   const { setFirebaseUser, firebaseUser } = useUserStore();
+  const router = useRouter();
+  const segments = useSegments();
   
   const subscribeToMeals = useMealsStore(state => state.subscribeToMeals);
   const subscribeToSleepEntries = useSleepStore(state => state.subscribeToSleepEntries);
@@ -175,6 +177,22 @@ export default function RootLayout() {
     }
   }, [loaded, hasCompletedOnboarding, authInitialized, initializeCourses, initializeBadges]);
 
+  useEffect(() => {
+    if (!isAppReady || showSplash) return;
+
+    const inAuthGroup = segments[0] === 'auth';
+    const inTabsGroup = segments[0] === '(tabs)';
+    const inOnboarding = segments[0] === 'onboarding';
+
+    if (!firebaseUser && !inAuthGroup) {
+      router.replace('/auth/login');
+    } else if (firebaseUser && !hasCompletedOnboarding && !inOnboarding) {
+      router.replace('/onboarding');
+    } else if (firebaseUser && hasCompletedOnboarding && !inTabsGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [firebaseUser, hasCompletedOnboarding, isAppReady, showSplash, segments, router]);
+
   if (!loaded || hasCompletedOnboarding === null || !isAppReady || !authInitialized) {
     return null;
   }
@@ -215,24 +233,18 @@ function RootLayoutNav({
 }) {
   return (
     <Stack>
-      {!isAuthenticated && (
-        <>
-          <Stack.Screen 
-            name="auth/login" 
-            options={{ headerShown: false }} 
-          />
-          <Stack.Screen 
-            name="auth/signup" 
-            options={{ headerShown: false }} 
-          />
-        </>
-      )}
-      {!hasCompletedOnboarding && isAuthenticated && (
-        <Stack.Screen 
-          name="onboarding" 
-          options={{ headerShown: false }} 
-        />
-      )}
+      <Stack.Screen 
+        name="auth/login" 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="auth/signup" 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="onboarding" 
+        options={{ headerShown: false }} 
+      />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen 
         name="course/[id]" 
