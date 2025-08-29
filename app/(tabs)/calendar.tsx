@@ -123,7 +123,7 @@ export default function CalendarScreen() {
     }
     
     // Mark days with water logs
-    if (waterLogs && waterLogs.length > 0) {
+    if (Array.isArray(waterLogs) && waterLogs.length > 0) {
       waterLogs.forEach(log => {
         if (log && log.date) {
           const dateStr = typeof log.date === 'string' ? log.date : formatDate(new Date(log.date));
