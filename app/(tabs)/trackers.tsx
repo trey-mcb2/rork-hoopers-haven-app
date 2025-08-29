@@ -482,7 +482,7 @@ export default function TrackersScreen() {
         <Card style={styles.statsCard}>
           <Text style={styles.statsTitle}>7-Day Water Intake</Text>
           <View style={styles.statsChartContainer}>
-            {last7DaysEntries.map((entry, index) => (
+            {Array.isArray(last7DaysEntries) && last7DaysEntries.map((entry, index) => (
               <View key={index} style={styles.chartBar}>
                 <View style={styles.barLabels}>
                   <Text style={styles.barValue}>{entry.glasses}</Text>
@@ -553,7 +553,7 @@ export default function TrackersScreen() {
         <Card style={styles.statsCard}>
           <Text style={styles.statsTitle}>7-Day Sleep History</Text>
           <View style={styles.sleepHistoryContainer}>
-            {last7DaysEntries.map((entry, index) => (
+            {Array.isArray(last7DaysEntries) && last7DaysEntries.map((entry, index) => (
               <Card key={index} variant="outlined" style={styles.sleepHistoryCard}>
                 <Text style={styles.sleepHistoryDate}>
                   {new Date(entry.date).toLocaleDateString(undefined, { 
