@@ -1,6 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -11,6 +11,13 @@ import { useCoursesStore } from "@/store/courses-store";
 import { useRewardsStore } from "@/store/rewards-store";
 import { useNotificationsStore } from "@/store/notifications-store";
 import { useUserStore } from "@/store/user-store";
+import { useMealsStore } from "@/store/meals-store";
+import { useSleepStore } from "@/store/sleep-store";
+import { useWaterStore } from "@/store/water-store";
+import { useWorkoutsStore } from "@/store/workouts-store";
+import { useShotsStore } from "@/store/shots-store";
+import { useWorkoutRatingStore } from "@/store/workout-rating-store";
+import { useDayRatingStore } from "@/store/day-rating-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -49,6 +56,17 @@ export default function RootLayout() {
   const initializeBadges = useRewardsStore(state => state.initializeBadges);
   const { requestPermissions, scheduleAllNotifications, setPermission } = useNotificationsStore();
   const { setFirebaseUser, firebaseUser } = useUserStore();
+  const router = useRouter();
+  const segments = useSegments();
+  
+  const subscribeToMeals = useMealsStore(state => state.subscribeToMeals);
+  const subscribeToSleepEntries = useSleepStore(state => state.subscribeToSleepEntries);
+  const subscribeToWaterEntries = useWaterStore(state => state.subscribeToWaterEntries);
+  const subscribeToWorkouts = useWorkoutsStore(state => state.subscribeToWorkouts);
+  const subscribeToSessions = useShotsStore(state => state.subscribeToSessions);
+  const subscribeToWorkoutRatings = useWorkoutRatingStore(state => state.subscribeToWorkoutRatings);
+  const subscribeToDayRatings = useDayRatingStore(state => state.subscribeToDayRatings);
+  const checkAndResetDaily = useWaterStore(state => state.checkAndResetDaily);
 
   useEffect(() => {
     if (error) {
@@ -57,15 +75,43 @@ export default function RootLayout() {
     }
   }, [error]);
   
-  // Initialize Firebase auth listener
+  // Initialize Firebase auth listener and data subscriptions
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let dataUnsubscribers: (() => void)[] = [];
+    
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
+      
+      dataUnsubscribers.forEach(unsub => unsub());
+      dataUnsubscribers = [];
+      
+      if (user) {
+        // Initialize data subscriptions for authenticated user
+        try {
+          const mealsUnsub = subscribeToMeals(user.uid);
+          const sleepUnsub = subscribeToSleepEntries(user.uid);
+          const waterUnsub = subscribeToWaterEntries(user.uid);
+          const workoutsUnsub = subscribeToWorkouts(user.uid);
+          const sessionsUnsub = subscribeToSessions(user.uid);
+          const workoutRatingsUnsub = subscribeToWorkoutRatings(user.uid);
+          const dayRatingsUnsub = subscribeToDayRatings(user.uid);
+          
+          dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub, workoutsUnsub, sessionsUnsub, workoutRatingsUnsub, dayRatingsUnsub];
+          
+          await checkAndResetDaily(user.uid);
+        } catch (error) {
+          console.error('Error initializing data subscriptions:', error);
+        }
+      }
+      
       setAuthInitialized(true);
     });
 
-    return unsubscribe;
-  }, [setFirebaseUser]);
+    return () => {
+      unsubscribe();
+      dataUnsubscribers.forEach(unsub => unsub());
+    };
+  }, [setFirebaseUser, subscribeToMeals, subscribeToSleepEntries, subscribeToWaterEntries, subscribeToWorkouts, subscribeToSessions, subscribeToWorkoutRatings, subscribeToDayRatings, checkAndResetDaily]);
   
   // Check if user has completed onboarding
   useEffect(() => {
@@ -100,7 +146,6 @@ export default function RootLayout() {
           canAskAgain: status !== 'denied'
         });
 
-        // If permissions are granted, schedule notifications
         if (granted) {
           await scheduleAllNotifications();
         }
@@ -131,6 +176,22 @@ export default function RootLayout() {
       return () => clearTimeout(timer);
     }
   }, [loaded, hasCompletedOnboarding, authInitialized, initializeCourses, initializeBadges]);
+
+  useEffect(() => {
+    if (!isAppReady || showSplash) return;
+
+    const inAuthGroup = segments[0] === 'auth';
+    const inTabsGroup = segments[0] === '(tabs)';
+    const inOnboarding = segments[0] === 'onboarding';
+
+    if (!firebaseUser && !inAuthGroup) {
+      router.replace('/auth/login');
+    } else if (firebaseUser && !hasCompletedOnboarding && !inOnboarding) {
+      router.replace('/onboarding');
+    } else if (firebaseUser && hasCompletedOnboarding && !inTabsGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [firebaseUser, hasCompletedOnboarding, isAppReady, showSplash, segments, router]);
 
   if (!loaded || hasCompletedOnboarding === null || !isAppReady || !authInitialized) {
     return null;
@@ -172,24 +233,18 @@ function RootLayoutNav({
 }) {
   return (
     <Stack>
-      {!isAuthenticated && (
-        <>
-          <Stack.Screen 
-            name="auth/login" 
-            options={{ headerShown: false }} 
-          />
-          <Stack.Screen 
-            name="auth/signup" 
-            options={{ headerShown: false }} 
-          />
-        </>
-      )}
-      {!hasCompletedOnboarding && isAuthenticated && (
-        <Stack.Screen 
-          name="onboarding" 
-          options={{ headerShown: false }} 
-        />
-      )}
+      <Stack.Screen 
+        name="auth/login" 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="auth/signup" 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="onboarding" 
+        options={{ headerShown: false }} 
+      />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen 
         name="course/[id]" 

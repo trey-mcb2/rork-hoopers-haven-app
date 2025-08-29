@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 export interface WorkoutRating {
   id: string;
+  userId: string;
   workoutId: string;
   date: string; // YYYY-MM-DD format
   focus: number; // 1-5 rating
@@ -16,64 +17,103 @@ interface WorkoutRatingState {
   ratings: WorkoutRating[];
   isLoading: boolean;
   error: string | null;
-  addRating: (rating: Omit<WorkoutRating, 'id'>) => void;
-  updateRating: (id: string, rating: Partial<WorkoutRating>) => void;
-  deleteRating: (id: string) => void;
+  addRating: (rating: Omit<WorkoutRating, 'id'>) => Promise<void>;
+  updateRating: (id: string, rating: Partial<WorkoutRating>) => Promise<void>;
+  deleteRating: (id: string) => Promise<void>;
   getRatingByWorkoutId: (workoutId: string) => WorkoutRating | undefined;
   getRatingsForDate: (date: string) => WorkoutRating[];
   getAverageRatings: (days: number) => { focus: number; effort: number; recovery: number };
+  loadRatings: (userId: string) => Promise<void>;
+  subscribeToWorkoutRatings: (userId: string) => () => void;
 }
 
 const formatDate = (date: Date): string => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-export const useWorkoutRatingStore = create<WorkoutRatingState>()(
-  persist(
-    (set, get) => ({
-      ratings: [],
-      isLoading: true,
-      error: null,
+export const useWorkoutRatingStore = create<WorkoutRatingState>()((set, get) => ({
+  ratings: [],
+  isLoading: false,
+  error: null,
+  
+  addRating: async (ratingData) => {
+    try {
+      set({ isLoading: true, error: null });
       
-      addRating: (ratingData) => {
+      // Check if a rating already exists for this workout
+      const existingRating = get().ratings.find(r => 
+        r.workoutId === ratingData.workoutId && r.userId === ratingData.userId
+      );
+      
+      if (existingRating) {
+        // Update existing rating
+        await get().updateRating(existingRating.id, ratingData);
+      } else {
+        // Add new rating
+        const ratingsRef = collection(db, 'users', ratingData.userId, 'workout-ratings');
+        const docRef = await addDoc(ratingsRef, ratingData);
+        
         const rating: WorkoutRating = {
           ...ratingData,
-          id: Date.now().toString(),
+          id: docRef.id,
         };
         
-        // Check if a rating already exists for this workout
-        const existingRatingIndex = (get().ratings || []).findIndex(r => 
-          r.workoutId === rating.workoutId
-        );
-        
-        if (existingRatingIndex >= 0) {
-          // Update existing rating
-          set((state) => ({
-            ratings: (state.ratings || []).map((r, index) => 
-              index === existingRatingIndex ? { ...r, ...rating } : r
-            ),
-          }));
-        } else {
-          // Add new rating
-          set((state) => ({
-            ratings: [...(state.ratings || []), rating],
-          }));
-        }
-      },
-      
-      updateRating: (id, updatedRating) => {
         set((state) => ({
-          ratings: (state.ratings || []).map((rating) =>
-            rating.id === id ? { ...rating, ...updatedRating } : rating
-          ),
+          ratings: [...state.ratings, rating],
+          isLoading: false
         }));
-      },
+      }
+    } catch (error) {
+      console.error('Error adding workout rating:', error);
+      set({ error: 'Failed to add workout rating', isLoading: false });
+    }
+  },
+  
+  updateRating: async (id, updatedRating) => {
+    try {
+      set({ isLoading: true, error: null });
       
-      deleteRating: (id) => {
-        set((state) => ({
-          ratings: (state.ratings || []).filter((rating) => rating.id !== id),
-        }));
-      },
+      const currentRating = get().ratings.find(rating => rating.id === id);
+      if (!currentRating) {
+        throw new Error('Workout rating not found');
+      }
+      
+      const ratingRef = doc(db, 'users', currentRating.userId, 'workout-ratings', id);
+      await updateDoc(ratingRef, updatedRating);
+      
+      set((state) => ({
+        ratings: state.ratings.map((rating) =>
+          rating.id === id ? { ...rating, ...updatedRating } : rating
+        ),
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error updating workout rating:', error);
+      set({ error: 'Failed to update workout rating', isLoading: false });
+    }
+  },
+  
+  deleteRating: async (id) => {
+    try {
+      set({ isLoading: true, error: null });
+      
+      const currentRating = get().ratings.find(rating => rating.id === id);
+      if (!currentRating) {
+        throw new Error('Workout rating not found');
+      }
+      
+      const ratingRef = doc(db, 'users', currentRating.userId, 'workout-ratings', id);
+      await deleteDoc(ratingRef);
+      
+      set((state) => ({
+        ratings: state.ratings.filter((rating) => rating.id !== id),
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error deleting workout rating:', error);
+      set({ error: 'Failed to delete workout rating', isLoading: false });
+    }
+  },
       
       getRatingByWorkoutId: (workoutId: string) => {
         return (get().ratings || []).find(rating => rating.workoutId === workoutId);
@@ -113,16 +153,41 @@ export const useWorkoutRatingStore = create<WorkoutRatingState>()(
           recovery: totalRecovery / filteredRatings.length,
         };
       },
-    }),
-    {
-      name: 'workout-rating-storage',
-      storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state) => {
-        // When the store is rehydrated, set loading to false
-        if (state) {
-          state.isLoading = false;
+      
+      loadRatings: async (userId) => {
+        try {
+          set({ isLoading: true, error: null });
+          
+          const ratingsRef = collection(db, 'users', userId, 'workout-ratings');
+          const q = query(ratingsRef, orderBy('date', 'desc'));
+          const querySnapshot = await getDocs(q);
+          
+          const ratings: WorkoutRating[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as WorkoutRating[];
+          
+          set({ ratings, isLoading: false });
+        } catch (error) {
+          console.error('Error loading workout ratings:', error);
+          set({ error: 'Failed to load workout ratings', isLoading: false });
         }
       },
-    }
-  )
-);
+      
+      subscribeToWorkoutRatings: (userId) => {
+        const ratingsRef = collection(db, 'users', userId, 'workout-ratings');
+        const q = query(ratingsRef, orderBy('date', 'desc'));
+        
+        return onSnapshot(q, (querySnapshot) => {
+          const ratings: WorkoutRating[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as WorkoutRating[];
+          
+          set({ ratings, isLoading: false });
+        }, (error) => {
+          console.error('Error in workout ratings subscription:', error);
+          set({ error: 'Failed to sync workout ratings', isLoading: false });
+        });
+      },
+    }));

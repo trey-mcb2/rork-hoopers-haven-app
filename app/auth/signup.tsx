@@ -3,7 +3,8 @@ import { StyleSheet, Text, View, TouchableOpacity, Alert, KeyboardAvoidingView, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/config/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/config/firebase';
 import Colors from '@/constants/colors';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -42,6 +43,13 @@ export default function SignupScreen() {
       // Update the user's display name
       await updateProfile(userCredential.user, {
         displayName: name.trim(),
+      });
+
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        name: name.trim(),
+        email: email.trim(),
+        createdAt: new Date(),
       });
 
       // Navigation will be handled by the auth state listener in _layout.tsx

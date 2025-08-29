@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, Image, Linking, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Image, Linking, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
@@ -51,37 +51,54 @@ export default function ProfileScreen() {
 
   const handleToggleAdmin = () => {
     toggleAdminMode();
-    Alert.alert(
-      'Admin Mode',
-      user?.isAdmin ? 'Admin mode disabled' : 'Admin mode enabled',
-      [{ text: 'OK' }]
-    );
+    if (Platform.OS === 'web') {
+      window.alert(user?.isAdmin ? 'Admin mode disabled' : 'Admin mode enabled');
+    } else {
+      Alert.alert(
+        'Admin Mode',
+        user?.isAdmin ? 'Admin mode disabled' : 'Admin mode enabled',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut(auth);
-              logout();
-            } catch (error) {
-              console.error('Logout error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to sign out?');
+      if (confirmed) {
+        performLogout();
+      }
+    } else {
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to sign out?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-        },
-      ]
-    );
+          {
+            text: 'Sign Out',
+            style: 'destructive',
+            onPress: performLogout,
+          },
+        ]
+      );
+    }
+  };
+
+  const performLogout = async () => {
+    try {
+      logout();
+      await signOut(auth);
+    } catch (error) {
+      console.error('Logout error:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to sign out. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to sign out. Please try again.');
+      }
+    }
   };
 
   // Count enabled notifications

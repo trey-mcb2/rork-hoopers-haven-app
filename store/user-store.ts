@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User as FirebaseUser } from 'firebase/auth';
 import { User, UserStats } from '@/types';
+import { Platform } from 'react-native';
 
 interface UserState {
   user: User | null;
@@ -140,12 +141,20 @@ export const useUserStore = create<UserState>()(
           };
         }),
         
-      logout: () => set({ 
-        user: null, 
-        firebaseUser: null,
-        personalGoal: null,
-        // Keep stats and measurements as they might be useful for next login
-      }),
+      logout: () => {
+        set({ 
+          user: null, 
+          firebaseUser: null,
+          personalGoal: null,
+          // Keep stats and measurements as they might be useful for next login
+        });
+        
+        if (Platform.OS === 'web') {
+          localStorage.removeItem('user-storage');
+        } else {
+          AsyncStorage.removeItem('user-storage');
+        }
+      },
     }),
     {
       name: 'user-storage',
