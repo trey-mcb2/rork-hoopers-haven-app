@@ -99,6 +99,12 @@ export const useRewardsStore = create<RewardsState>()(
     {
       name: 'rewards-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate rewards storage:', error);
+          console.warn('Using default rewards due to storage error');
+        }
+      },
     }
   )
 );

@@ -64,6 +64,12 @@ export const useCoursesStore = create<CoursesState>()(
     {
       name: 'courses-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate courses storage:', error);
+          console.warn('Using default courses due to storage error');
+        }
+      },
     }
   )
 );

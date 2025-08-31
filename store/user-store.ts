@@ -149,10 +149,14 @@ export const useUserStore = create<UserState>()(
           // Keep stats and measurements as they might be useful for next login
         });
         
-        if (Platform.OS === 'web') {
-          localStorage.removeItem('user-storage');
-        } else {
-          AsyncStorage.removeItem('user-storage');
+        try {
+          if (Platform.OS === 'web') {
+            localStorage.removeItem('user-storage');
+          } else {
+            await AsyncStorage.removeItem('user-storage');
+          }
+        } catch (error) {
+          console.error('Failed to clear user storage during logout:', error);
         }
       },
     }),
