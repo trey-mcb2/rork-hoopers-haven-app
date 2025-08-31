@@ -15,16 +15,50 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  console.error('Failed to initialize Firebase app:', error);
+  throw new Error('Firebase initialization failed');
+}
 
 // Initialize Firebase Authentication with platform-specific configuration
-export const auth = Platform.OS === 'web' 
-  ? getAuth(app)
-  : initializeAuth(app, {
+let auth;
+try {
+  if (Platform.OS === 'web') {
+    auth = getAuth(app);
+  } else {
+    auth = initializeAuth(app, {
       persistence: getReactNativePersistence(AsyncStorage)
     });
+  }
+} catch (error) {
+  console.error('Failed to initialize Firebase auth:', error);
+  if (Platform.OS !== 'web') {
+    try {
+      auth = getAuth(app);
+      console.warn('Using Firebase auth without AsyncStorage persistence due to initialization error');
+    } catch (fallbackError) {
+      console.error('Firebase auth fallback also failed:', fallbackError);
+      throw new Error('Firebase auth initialization completely failed');
+    }
+  } else {
+    throw error;
+  }
+}
+
+export { auth };
 
 // Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
+let db;
+try {
+  db = getFirestore(app);
+} catch (error) {
+  console.error('Failed to initialize Firestore:', error);
+  throw new Error('Firestore initialization failed');
+}
+
+export { db };
 
 export default app;
