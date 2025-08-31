@@ -153,7 +153,7 @@ export const useUserStore = create<UserState>()(
           if (Platform.OS === 'web') {
             localStorage.removeItem('user-storage');
           } else {
-            await AsyncStorage.removeItem('user-storage');
+            AsyncStorage.removeItem('user-storage');
           }
         } catch (error) {
           console.error('Failed to clear user storage during logout:', error);
