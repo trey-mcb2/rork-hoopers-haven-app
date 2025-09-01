@@ -78,38 +78,69 @@ export default function RootLayout() {
   // Initialize Firebase auth listener and data subscriptions
   useEffect(() => {
     let dataUnsubscribers: (() => void)[] = [];
+    let unsubscribe: (() => void) | null = null;
     
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setFirebaseUser(user);
-      
-      dataUnsubscribers.forEach(unsub => unsub());
-      dataUnsubscribers = [];
-      
-      if (user) {
-        // Initialize data subscriptions for authenticated user
+    try {
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
         try {
-          const mealsUnsub = subscribeToMeals(user.uid);
-          const sleepUnsub = subscribeToSleepEntries(user.uid);
-          const waterUnsub = subscribeToWaterEntries(user.uid);
-          const workoutsUnsub = subscribeToWorkouts(user.uid);
-          const sessionsUnsub = subscribeToSessions(user.uid);
-          const workoutRatingsUnsub = subscribeToWorkoutRatings(user.uid);
-          const dayRatingsUnsub = subscribeToDayRatings(user.uid);
+          setFirebaseUser(user);
           
-          dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub, workoutsUnsub, sessionsUnsub, workoutRatingsUnsub, dayRatingsUnsub];
+          dataUnsubscribers.forEach(unsub => {
+            try {
+              unsub();
+            } catch (error) {
+              console.error('Error unsubscribing from data listener:', error);
+            }
+          });
+          dataUnsubscribers = [];
           
-          await checkAndResetDaily(user.uid);
+          if (user) {
+            // Initialize data subscriptions for authenticated user
+            try {
+              const mealsUnsub = subscribeToMeals(user.uid);
+              const sleepUnsub = subscribeToSleepEntries(user.uid);
+              const waterUnsub = subscribeToWaterEntries(user.uid);
+              const workoutsUnsub = subscribeToWorkouts(user.uid);
+              const sessionsUnsub = subscribeToSessions(user.uid);
+              const workoutRatingsUnsub = subscribeToWorkoutRatings(user.uid);
+              const dayRatingsUnsub = subscribeToDayRatings(user.uid);
+              
+              dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub, workoutsUnsub, sessionsUnsub, workoutRatingsUnsub, dayRatingsUnsub];
+              
+              await checkAndResetDaily(user.uid);
+            } catch (error) {
+              console.error('Error initializing data subscriptions:', error);
+              console.warn('Some data subscriptions may not be active due to initialization errors');
+            }
+          }
+          
+          setAuthInitialized(true);
         } catch (error) {
-          console.error('Error initializing data subscriptions:', error);
+          console.error('Error in auth state change handler:', error);
+          setAuthInitialized(true);
         }
-      }
-      
+      });
+    } catch (error) {
+      console.error('Failed to initialize Firebase auth listener:', error);
+      console.warn('Auth state changes may not be detected properly');
       setAuthInitialized(true);
-    });
+    }
 
     return () => {
-      unsubscribe();
-      dataUnsubscribers.forEach(unsub => unsub());
+      try {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+        dataUnsubscribers.forEach(unsub => {
+          try {
+            unsub();
+          } catch (error) {
+            console.error('Error cleaning up data subscription:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Error during auth listener cleanup:', error);
+      }
     };
   }, [setFirebaseUser, subscribeToMeals, subscribeToSleepEntries, subscribeToWaterEntries, subscribeToWorkouts, subscribeToSessions, subscribeToWorkoutRatings, subscribeToDayRatings, checkAndResetDaily]);
   
@@ -121,6 +152,7 @@ export default function RootLayout() {
         setHasCompletedOnboarding(value === 'true');
       } catch (error) {
         console.error('Error checking onboarding status:', error);
+        console.warn('AsyncStorage failed, defaulting to incomplete onboarding');
         setHasCompletedOnboarding(false);
       }
     };
@@ -202,7 +234,7 @@ export default function RootLayout() {
       <View style={styles.splashContainer}>
         <StatusBar style="light" />
         <Image 
-          source={require('../assets/images/splash-icon.png')}
+          source={require('../assets/splash.png')}
           style={styles.splashImage}
           resizeMode="contain"
         />

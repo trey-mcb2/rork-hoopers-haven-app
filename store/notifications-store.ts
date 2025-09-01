@@ -216,6 +216,12 @@ export const useNotificationsStore = create<NotificationState>()(
       name: 'notifications-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ settings: state.settings }),
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('Failed to rehydrate notifications storage:', error);
+          console.warn('Using default notification settings due to storage error');
+        }
+      },
     }
   )
 );
