@@ -234,7 +234,7 @@ export default function RootLayout() {
       <View style={styles.splashContainer}>
         <StatusBar style="light" />
         <Image 
-          source={require('../assets/splash.png')}
+          source={require('../assets/images/splash-icon.png')}
           style={styles.splashImage}
           resizeMode="contain"
         />
