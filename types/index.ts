@@ -40,9 +40,9 @@ export interface Meal {
 export interface Workout {
   id: string;
   userId: string;
-  type: string;
+  type?: string;
   duration: number;
-  date: Date;
+  date: string;
   notes?: string;
   rating?: WorkoutRating;
   description: string;
@@ -52,12 +52,13 @@ export interface Workout {
 
 export interface WorkoutRating {
   id: string;
+  userId: string;
   workoutId: string;
+  date: string;
   focus: number; // 1-5
   effort: number; // 1-5
   recovery: number; // 1-5
   notes?: string;
-  timestamp: Date;
 }
 
 export interface Shot {

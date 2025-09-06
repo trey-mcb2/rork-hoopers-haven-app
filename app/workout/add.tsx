@@ -133,7 +133,7 @@ export default function AddWorkoutScreen() {
         );
       } else {
         const newWorkoutId = Date.now().toString();
-        await addWorkout({...workoutData, id: newWorkoutId});
+        await addWorkout(workoutData);
         setWorkoutId(newWorkoutId);
         
         setShowRating(true);

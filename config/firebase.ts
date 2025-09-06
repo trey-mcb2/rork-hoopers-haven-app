@@ -1,8 +1,6 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -15,50 +13,13 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
-try {
-  app = initializeApp(firebaseConfig);
-} catch (error) {
-  console.error('Failed to initialize Firebase app:', error);
-  throw new Error('Firebase initialization failed');
-}
+const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication with platform-specific configuration
-let auth;
-try {
-  if (Platform.OS === 'web') {
-    auth = getAuth(app);
-  } else {
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage)
-    });
-  }
-} catch (error) {
-  console.error('Failed to initialize Firebase auth:', error);
-  if (Platform.OS !== 'web') {
-    try {
-      auth = getAuth(app);
-      console.warn('Using Firebase auth without AsyncStorage persistence due to initialization error');
-    } catch (fallbackError) {
-      console.error('Firebase auth fallback also failed:', fallbackError);
-      throw new Error('Firebase auth initialization completely failed');
-    }
-  } else {
-    throw error;
-  }
-}
+// Initialize Firebase Authentication
+const auth = getAuth(app);
 
-export { auth };
+// Initialize Cloud Firestore
+const db = getFirestore(app);
 
-// Initialize Cloud Firestore and get a reference to the service
-let db;
-try {
-  db = getFirestore(app);
-} catch (error) {
-  console.error('Failed to initialize Firestore:', error);
-  throw new Error('Firestore initialization failed');
-}
-
-export { db };
-
+export { auth, db };
 export default app;
