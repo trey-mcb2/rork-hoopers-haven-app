@@ -21,6 +21,8 @@ import { useDayRatingStore } from "@/store/day-rating-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
 import { onAuthStateChanged, getAuth } from 'firebase/auth';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { trpc, trpcClient } from "@/lib/trpc";
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -42,6 +44,9 @@ if (Platform.OS !== 'web') {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Create a client for React Query
+const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -247,15 +252,19 @@ export default function RootLayout() {
   }
 
   return (
-    <ErrorBoundary>
-      <>
-        <StatusBar style="light" />
-        <RootLayoutNav 
-          hasCompletedOnboarding={hasCompletedOnboarding} 
-          isAuthenticated={!!firebaseUser}
-        />
-      </>
-    </ErrorBoundary>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <>
+            <StatusBar style="light" />
+            <RootLayoutNav 
+              hasCompletedOnboarding={hasCompletedOnboarding} 
+              isAuthenticated={!!firebaseUser}
+            />
+          </>
+        </ErrorBoundary>
+      </QueryClientProvider>
+    </trpc.Provider>
   );
 }
 
