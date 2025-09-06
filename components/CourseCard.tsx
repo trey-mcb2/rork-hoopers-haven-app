@@ -19,7 +19,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   const [isPressed, setIsPressed] = useState(false);
   
   const getDifficultyColor = () => {
-    switch (course.difficulty) {
+    switch (course.level) {
       case 'beginner':
         return Colors.success;
       case 'intermediate':
@@ -33,14 +33,14 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 
   const handlePress = async () => {
     // Check if this is the E-Book course
-    if (course.title === "Hoopers Haven E-Book" && course.content && course.content.length > 0) {
+    if (course.title === "Hoopers Haven E-Book" && course.lessons && course.lessons.length > 0) {
       // Provide haptic feedback on devices that support it
       if (Platform.OS !== 'web') {
         await Haptics.selectionAsync();
       }
       
-      // Get the PDF URL from the course content
-      const pdfUrl = course.content[0].url;
+      // Get the PDF URL from the course lessons
+      const pdfUrl = course.lessons[0].videoUrl;
       if (pdfUrl) {
         // Open the URL in the device's browser
         Linking.openURL(pdfUrl);
@@ -74,11 +74,17 @@ export const CourseCard: React.FC<CourseCardProps> = ({
     >
       <View style={styles.card}>
         <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: course.thumbnail }} 
-            style={styles.image}
-            resizeMode="cover"
-          />
+          {course.imageUrl ? (
+            <Image 
+              source={{ uri: course.imageUrl }} 
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.image, styles.placeholderImage]}>
+              <Play size={32} color={Colors.neutral.textDark} />
+            </View>
+          )}
           <View style={styles.overlay}>
             <View style={styles.playButton}>
               {isEbook ? (
@@ -104,7 +110,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           <View style={styles.metaContainer}>
             <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor() }]}>
               <Text style={styles.difficultyText}>
-                {course.difficulty.charAt(0).toUpperCase() + course.difficulty.slice(1)}
+                {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
               </Text>
             </View>
             <Text style={styles.category}>{course.category.charAt(0).toUpperCase() + course.category.slice(1)}</Text>
@@ -113,7 +119,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             {course.description}
           </Text>
           <Text style={styles.contentCount}>
-            {isEbook ? "Opens in browser" : `${course.content.length} ${course.content.length === 1 ? 'lesson' : 'lessons'}`}
+            {isEbook ? "Opens in browser" : `${course.lessons.length} ${course.lessons.length === 1 ? 'lesson' : 'lessons'}`}
           </Text>
         </View>
       </View>
@@ -148,6 +154,11 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  placeholderImage: {
+    backgroundColor: Colors.light.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

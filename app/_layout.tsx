@@ -20,8 +20,7 @@ import { useWorkoutRatingStore } from "@/store/workout-rating-store";
 import { useDayRatingStore } from "@/store/day-rating-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/config/firebase';
+import { onAuthStateChanged, getAuth } from 'firebase/auth';
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
@@ -35,6 +34,8 @@ if (Platform.OS !== 'web') {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 }
@@ -54,7 +55,7 @@ export default function RootLayout() {
 
   const initializeCourses = useCoursesStore(state => state.initializeCourses);
   const initializeBadges = useRewardsStore(state => state.initializeBadges);
-  const { requestPermissions, scheduleAllNotifications, setPermission } = useNotificationsStore();
+  const { scheduleAllNotifications, setPermission } = useNotificationsStore();
   const { setFirebaseUser, firebaseUser } = useUserStore();
   const router = useRouter();
   const segments = useSegments();
@@ -81,7 +82,9 @@ export default function RootLayout() {
     let unsubscribe: (() => void) | null = null;
     
     try {
-      unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Ensure auth is properly initialized
+      const authInstance = getAuth();
+      unsubscribe = onAuthStateChanged(authInstance, async (user) => {
         try {
           setFirebaseUser(user);
           

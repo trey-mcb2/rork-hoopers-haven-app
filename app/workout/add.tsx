@@ -28,7 +28,7 @@ const focusAreaOptions = [
   'Free Throws',
 ];
 
-export default function AddWorkoutScreen() {
+function AddWorkoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { id } = params;
@@ -558,3 +558,5 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 });
+
+export default AddWorkoutScreen;

@@ -1,6 +1,7 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth, initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { Platform } from "react-native";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -12,11 +13,27 @@ const firebaseConfig = {
   appId: "1:695385820548:web:13aeab364ec5bab87661d1"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase only if it hasn't been initialized already
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
+}
 
-// Initialize Firebase Authentication
-const auth = getAuth(app);
+// Initialize Firebase Authentication with proper configuration
+let auth;
+try {
+  if (Platform.OS === 'web') {
+    auth = getAuth(app);
+  } else {
+    // For React Native, use initializeAuth
+    auth = initializeAuth(app);
+  }
+} catch {
+  // If auth is already initialized, get the existing instance
+  auth = getAuth(app);
+}
 
 // Initialize Cloud Firestore
 const db = getFirestore(app);
