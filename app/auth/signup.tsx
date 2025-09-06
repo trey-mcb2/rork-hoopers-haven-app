@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/config/firebase';
+// 🔥 Removed Firebase logic, will rewire with tRPC
 import Colors from '@/constants/colors';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -38,43 +36,12 @@ export default function SignupScreen() {
 
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      
-      // Update the user's display name
-      await updateProfile(userCredential.user, {
-        displayName: name.trim(),
-      });
-
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        name: name.trim(),
-        email: email.trim(),
-        createdAt: new Date(),
-      });
-
-      // Navigation will be handled by the auth state listener in _layout.tsx
+      // 🔥 Removed Firebase logic, will rewire with tRPC
+      Alert.alert('Success', 'Signup functionality will be implemented with tRPC');
+      router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Signup error:', error);
-      let errorMessage = 'An error occurred during signup';
-      
-      switch (error.code) {
-        case 'auth/email-already-in-use':
-          errorMessage = 'An account with this email already exists';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email address';
-          break;
-        case 'auth/weak-password':
-          errorMessage = 'Password is too weak';
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled';
-          break;
-        default:
-          errorMessage = error.message || errorMessage;
-      }
-      
-      Alert.alert('Signup Failed', errorMessage);
+      Alert.alert('Signup Failed', 'An error occurred during signup');
     } finally {
       setIsLoading(false);
     }

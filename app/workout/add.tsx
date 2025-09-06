@@ -36,7 +36,7 @@ function AddWorkoutScreen() {
   
   const { addWorkout, updateWorkout, workouts = [] } = useWorkoutsStore();
   const { addRating, getRatingByWorkoutId, updateRating } = useWorkoutRatingStore();
-  const { firebaseUser } = useUserStore();
+  const { user } = useUserStore();
   
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('');
@@ -98,7 +98,7 @@ function AddWorkoutScreen() {
     setIsSubmitting(true);
     
     const workoutData = {
-      userId: firebaseUser?.uid || '',
+      userId: user?.id || '',
       date: isEditing ? date.toISOString() : new Date().toISOString(),
       description,
       duration: parseInt(duration),
@@ -152,7 +152,7 @@ function AddWorkoutScreen() {
     const formattedDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
     
     const workoutRating = {
-      userId: firebaseUser?.uid || '',
+      userId: user?.id || '',
       workoutId: isEditing ? id as string : workoutId,
       date: formattedDate,
       focus: focusRating,

@@ -11,16 +11,10 @@ import { useCoursesStore } from "@/store/courses-store";
 import { useRewardsStore } from "@/store/rewards-store";
 import { useNotificationsStore } from "@/store/notifications-store";
 import { useUserStore } from "@/store/user-store";
-import { useMealsStore } from "@/store/meals-store";
-import { useSleepStore } from "@/store/sleep-store";
-import { useWaterStore } from "@/store/water-store";
-import { useWorkoutsStore } from "@/store/workouts-store";
-import { useShotsStore } from "@/store/shots-store";
-import { useWorkoutRatingStore } from "@/store/workout-rating-store";
-import { useDayRatingStore } from "@/store/day-rating-store";
+// 🔥 Removed Firebase logic, will rewire with tRPC
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from 'expo-notifications';
-import { onAuthStateChanged, getAuth } from 'firebase/auth';
+// 🔥 Removed Firebase logic, will rewire with tRPC
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc, trpcClient } from "@/lib/trpc";
 
@@ -56,23 +50,16 @@ export default function RootLayout() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [isAppReady, setIsAppReady] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [authInitialized, setAuthInitialized] = useState(false);
+  const [authInitialized] = useState(true);
 
   const initializeCourses = useCoursesStore(state => state.initializeCourses);
   const initializeBadges = useRewardsStore(state => state.initializeBadges);
   const { scheduleAllNotifications, setPermission } = useNotificationsStore();
-  const { setFirebaseUser, firebaseUser } = useUserStore();
+  const { user } = useUserStore();
   const router = useRouter();
   const segments = useSegments();
   
-  const subscribeToMeals = useMealsStore(state => state.subscribeToMeals);
-  const subscribeToSleepEntries = useSleepStore(state => state.subscribeToSleepEntries);
-  const subscribeToWaterEntries = useWaterStore(state => state.subscribeToWaterEntries);
-  const subscribeToWorkouts = useWorkoutsStore(state => state.subscribeToWorkouts);
-  const subscribeToSessions = useShotsStore(state => state.subscribeToSessions);
-  const subscribeToWorkoutRatings = useWorkoutRatingStore(state => state.subscribeToWorkoutRatings);
-  const subscribeToDayRatings = useDayRatingStore(state => state.subscribeToDayRatings);
-  const checkAndResetDaily = useWaterStore(state => state.checkAndResetDaily);
+  // 🔥 Removed Firebase logic, will rewire with tRPC
 
   useEffect(() => {
     if (error) {
@@ -81,76 +68,7 @@ export default function RootLayout() {
     }
   }, [error]);
   
-  // Initialize Firebase auth listener and data subscriptions
-  useEffect(() => {
-    let dataUnsubscribers: (() => void)[] = [];
-    let unsubscribe: (() => void) | null = null;
-    
-    try {
-      // Ensure auth is properly initialized
-      const authInstance = getAuth();
-      unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-        try {
-          setFirebaseUser(user);
-          
-          dataUnsubscribers.forEach(unsub => {
-            try {
-              unsub();
-            } catch (error) {
-              console.error('Error unsubscribing from data listener:', error);
-            }
-          });
-          dataUnsubscribers = [];
-          
-          if (user) {
-            // Initialize data subscriptions for authenticated user
-            try {
-              const mealsUnsub = subscribeToMeals(user.uid);
-              const sleepUnsub = subscribeToSleepEntries(user.uid);
-              const waterUnsub = subscribeToWaterEntries(user.uid);
-              const workoutsUnsub = subscribeToWorkouts(user.uid);
-              const sessionsUnsub = subscribeToSessions(user.uid);
-              const workoutRatingsUnsub = subscribeToWorkoutRatings(user.uid);
-              const dayRatingsUnsub = subscribeToDayRatings(user.uid);
-              
-              dataUnsubscribers = [mealsUnsub, sleepUnsub, waterUnsub, workoutsUnsub, sessionsUnsub, workoutRatingsUnsub, dayRatingsUnsub];
-              
-              await checkAndResetDaily(user.uid);
-            } catch (error) {
-              console.error('Error initializing data subscriptions:', error);
-              console.warn('Some data subscriptions may not be active due to initialization errors');
-            }
-          }
-          
-          setAuthInitialized(true);
-        } catch (error) {
-          console.error('Error in auth state change handler:', error);
-          setAuthInitialized(true);
-        }
-      });
-    } catch (error) {
-      console.error('Failed to initialize Firebase auth listener:', error);
-      console.warn('Auth state changes may not be detected properly');
-      setAuthInitialized(true);
-    }
-
-    return () => {
-      try {
-        if (unsubscribe) {
-          unsubscribe();
-        }
-        dataUnsubscribers.forEach(unsub => {
-          try {
-            unsub();
-          } catch (error) {
-            console.error('Error cleaning up data subscription:', error);
-          }
-        });
-      } catch (error) {
-        console.error('Error during auth listener cleanup:', error);
-      }
-    };
-  }, [setFirebaseUser, subscribeToMeals, subscribeToSleepEntries, subscribeToWaterEntries, subscribeToWorkouts, subscribeToSessions, subscribeToWorkoutRatings, subscribeToDayRatings, checkAndResetDaily]);
+  // 🔥 Removed Firebase logic, will rewire with tRPC
   
   // Check if user has completed onboarding
   useEffect(() => {
@@ -220,18 +138,16 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isAppReady || showSplash) return;
 
-    const inAuthGroup = segments[0] === 'auth';
     const inTabsGroup = segments[0] === '(tabs)';
     const inOnboarding = segments[0] === 'onboarding';
 
-    if (!firebaseUser && !inAuthGroup) {
-      router.replace('/auth/login');
-    } else if (firebaseUser && !hasCompletedOnboarding && !inOnboarding) {
+    // 🔥 Removed Firebase logic, will rewire with tRPC
+    if (!hasCompletedOnboarding && !inOnboarding) {
       router.replace('/onboarding');
-    } else if (firebaseUser && hasCompletedOnboarding && !inTabsGroup) {
+    } else if (hasCompletedOnboarding && !inTabsGroup) {
       router.replace('/(tabs)');
     }
-  }, [firebaseUser, hasCompletedOnboarding, isAppReady, showSplash, segments, router]);
+  }, [hasCompletedOnboarding, isAppReady, showSplash, segments, router]);
 
   if (!loaded || hasCompletedOnboarding === null || !isAppReady || !authInitialized) {
     return null;
@@ -259,7 +175,7 @@ export default function RootLayout() {
             <StatusBar style="light" />
             <RootLayoutNav 
               hasCompletedOnboarding={hasCompletedOnboarding} 
-              isAuthenticated={!!firebaseUser}
+              isAuthenticated={!!user}
             />
           </>
         </ErrorBoundary>

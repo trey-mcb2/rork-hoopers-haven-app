@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+// 🔥 Removed Firebase logic, will rewire with tRPC
 import { useUserStore } from './user-store';
 
 export interface Meal {
@@ -34,15 +33,11 @@ export const useMealsStore = create<MealsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const mealsRef = collection(db, 'users', mealData.userId, 'meals');
-      const docRef = await addDoc(mealsRef, {
-        ...mealData,
-        date: mealData.date.toISOString(),
-      });
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
       const meal: Meal = {
         ...mealData,
-        id: docRef.id,
+        id: Date.now().toString(),
       };
       
       set((state) => ({ 
@@ -61,19 +56,7 @@ export const useMealsStore = create<MealsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const currentMeal = get().meals.find(meal => meal.id === id);
-      if (!currentMeal) {
-        throw new Error('Meal not found');
-      }
-      
-      const mealRef = doc(db, 'users', currentMeal.userId, 'meals', id);
-      const updateData = { ...updatedMeal };
-      
-      if (updateData.date) {
-        updateData.date = updateData.date.toISOString();
-      }
-      
-      await updateDoc(mealRef, updateData);
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
       set((state) => ({
         meals: state.meals.map((meal) =>
@@ -91,13 +74,7 @@ export const useMealsStore = create<MealsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const currentMeal = get().meals.find(meal => meal.id === id);
-      if (!currentMeal) {
-        throw new Error('Meal not found');
-      }
-      
-      const mealRef = doc(db, 'users', currentMeal.userId, 'meals', id);
-      await deleteDoc(mealRef);
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
       set((state) => ({
         meals: state.meals.filter((meal) => meal.id !== id),
@@ -128,17 +105,9 @@ export const useMealsStore = create<MealsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const mealsRef = collection(db, 'users', userId, 'meals');
-      const q = query(mealsRef, orderBy('date', 'desc'));
-      const querySnapshot = await getDocs(q);
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
-      const meals: Meal[] = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        date: new Date(doc.data().date),
-      })) as Meal[];
-      
-      set({ meals, isLoading: false });
+      set({ meals: [], isLoading: false });
     } catch (error) {
       console.error('Error loading meals:', error);
       set({ error: 'Failed to load meals', isLoading: false });
@@ -146,20 +115,7 @@ export const useMealsStore = create<MealsState>()((set, get) => ({
   },
   
   subscribeToMeals: (userId) => {
-    const mealsRef = collection(db, 'users', userId, 'meals');
-    const q = query(mealsRef, orderBy('date', 'desc'));
-    
-    return onSnapshot(q, (querySnapshot) => {
-      const meals: Meal[] = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        date: new Date(doc.data().date),
-      })) as Meal[];
-      
-      set({ meals, isLoading: false });
-    }, (error) => {
-      console.error('Error in meals subscription:', error);
-      set({ error: 'Failed to sync meals', isLoading: false });
-    });
+    // 🔥 Removed Firebase logic, will rewire with tRPC
+    return () => {};
   },
 }));

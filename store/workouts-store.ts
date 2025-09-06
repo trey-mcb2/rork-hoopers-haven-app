@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { collection, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+// 🔥 Removed Firebase logic, will rewire with tRPC
 
 export interface Workout {
   id: string;
@@ -36,12 +35,10 @@ export const useWorkoutsStore = create<WorkoutsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const workoutsRef = collection(db, 'users', workoutData.userId, 'workouts');
-      const docRef = await addDoc(workoutsRef, workoutData);
-      
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       const workout: Workout = {
         ...workoutData,
-        id: docRef.id,
+        id: Date.now().toString(),
       };
       
       set((state) => ({
@@ -58,13 +55,7 @@ export const useWorkoutsStore = create<WorkoutsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const currentWorkout = get().workouts.find(workout => workout.id === id);
-      if (!currentWorkout) {
-        throw new Error('Workout not found');
-      }
-      
-      const workoutRef = doc(db, 'users', currentWorkout.userId, 'workouts', id);
-      await updateDoc(workoutRef, updatedWorkout);
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
       set((state) => ({
         workouts: state.workouts.map((workout) =>
@@ -82,13 +73,7 @@ export const useWorkoutsStore = create<WorkoutsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const currentWorkout = get().workouts.find(workout => workout.id === id);
-      if (!currentWorkout) {
-        throw new Error('Workout not found');
-      }
-      
-      const workoutRef = doc(db, 'users', currentWorkout.userId, 'workouts', id);
-      await deleteDoc(workoutRef);
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
       set((state) => ({
         workouts: state.workouts.filter((workout) => workout.id !== id),
@@ -132,16 +117,9 @@ export const useWorkoutsStore = create<WorkoutsState>()((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       
-      const workoutsRef = collection(db, 'users', userId, 'workouts');
-      const q = query(workoutsRef, orderBy('date', 'desc'));
-      const querySnapshot = await getDocs(q);
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
-      const workouts: Workout[] = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Workout[];
-      
-      set({ workouts, isLoading: false });
+      set({ workouts: [], isLoading: false });
     } catch (error) {
       console.error('Error loading workouts:', error);
       set({ error: 'Failed to load workouts', isLoading: false });
@@ -149,19 +127,7 @@ export const useWorkoutsStore = create<WorkoutsState>()((set, get) => ({
   },
   
   subscribeToWorkouts: (userId) => {
-    const workoutsRef = collection(db, 'users', userId, 'workouts');
-    const q = query(workoutsRef, orderBy('date', 'desc'));
-    
-    return onSnapshot(q, (querySnapshot) => {
-      const workouts: Workout[] = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Workout[];
-      
-      set({ workouts, isLoading: false });
-    }, (error) => {
-      console.error('Error in workouts subscription:', error);
-      set({ error: 'Failed to sync workouts', isLoading: false });
-    });
+    // 🔥 Removed Firebase logic, will rewire with tRPC
+    return () => {};
   },
 }));

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/config/firebase';
+// 🔥 Removed Firebase logic, will rewire with tRPC
 import Colors from '@/constants/colors';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
@@ -24,33 +23,12 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      // Navigation will be handled by the auth state listener in _layout.tsx
+      // 🔥 Removed Firebase logic, will rewire with tRPC
+      Alert.alert('Success', 'Login functionality will be implemented with tRPC');
+      router.replace('/(tabs)');
     } catch (error: any) {
       console.error('Login error:', error);
-      let errorMessage = 'An error occurred during login';
-      
-      switch (error.code) {
-        case 'auth/user-not-found':
-          errorMessage = 'No account found with this email';
-          break;
-        case 'auth/wrong-password':
-          errorMessage = 'Incorrect password';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email address';
-          break;
-        case 'auth/user-disabled':
-          errorMessage = 'This account has been disabled';
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Too many failed attempts. Please try again later';
-          break;
-        default:
-          errorMessage = error.message || errorMessage;
-      }
-      
-      Alert.alert('Login Failed', errorMessage);
+      Alert.alert('Login Failed', 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }

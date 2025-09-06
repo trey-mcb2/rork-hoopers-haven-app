@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User as FirebaseUser } from 'firebase/auth';
+// 🔥 Removed Firebase logic, will rewire with tRPC
 import { User, UserStats } from '@/types';
 import { Platform } from 'react-native';
 
 interface UserState {
   user: User | null;
-  firebaseUser: FirebaseUser | null;
+  // 🔥 Removed Firebase logic, will rewire with tRPC
   stats: UserStats;
   isLoading: boolean;
   error: string | null;
@@ -15,7 +15,7 @@ interface UserState {
   height: { value: number | null; unit: 'cm' | 'in' };
   weight: { value: number | null; unit: 'kg' | 'lbs' };
   setUser: (user: User | null) => void;
-  setFirebaseUser: (firebaseUser: FirebaseUser | null) => void;
+  // 🔥 Removed Firebase logic, will rewire with tRPC
   updateStats: (stats: Partial<UserStats>) => void;
   incrementStat: (key: keyof UserStats, value?: number) => void;
   toggleAdminMode: () => void;
@@ -31,7 +31,7 @@ export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
       user: null,
-      firebaseUser: null,
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       stats: {
         totalWorkouts: 0,
         totalShotsMade: 0,
@@ -48,25 +48,7 @@ export const useUserStore = create<UserState>()(
       
       setUser: (user) => set({ user }),
       
-      setFirebaseUser: (firebaseUser) => {
-        set({ firebaseUser });
-        
-        // Create or update local user from Firebase user
-        if (firebaseUser) {
-          const localUser: User = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || 'Basketball Player',
-            email: firebaseUser.email || '',
-            createdAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
-            joinDate: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime) : new Date(),
-            isAdmin: false,
-            stats: get().stats,
-          };
-          set({ user: localUser });
-        } else {
-          set({ user: null });
-        }
-      },
+      // 🔥 Removed Firebase logic, will rewire with tRPC
       
       updateStats: (partialStats) => 
         set((state) => ({ 
@@ -144,7 +126,6 @@ export const useUserStore = create<UserState>()(
       logout: () => {
         set({ 
           user: null, 
-          firebaseUser: null,
           personalGoal: null,
           // Keep stats and measurements as they might be useful for next login
         });
